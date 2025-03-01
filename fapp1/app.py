@@ -26,7 +26,11 @@ keycloak = oauth.register(
 
 @app.route("/")
 def home():
-    return 'Welcome to fapp1! <a href="/login">Login with Keycloak</a>'
+    return """<p>Welcome to fapp1! </p>
+        <div><a href="/login">Login with Keycloak</a></div>
+        <div><a href="/addnew">Redirect to KeyCloak to register a new user</a></div>
+        <div><a href="/register">Call Keycloak API to register a new user</a></div>
+        """
 
 @app.route("/login")
 def login():
@@ -78,6 +82,17 @@ def callback():
 def logout():
     session.clear()
     return redirect("/")
+
+@app.route("/register")
+def register_user():
+    '''Call Keycloak API to register a new user'''
+    return "Call Keycloak API to register a new user."
+
+@app.route("/addnew")
+def add_user():
+    '''Redirect to KeyCloak a new user'''
+    return "Redirect to Keycloak a new user."
+
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)
