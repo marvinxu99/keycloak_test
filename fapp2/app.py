@@ -10,7 +10,7 @@ KEYCLOAK_BASE_URL = "http://localhost:8080"  # Adjust if using Docker (See Step 
 REALM_NAME = "MyRealm"
 
 CLIENT_ID = "fapp2"
-CLIENT_SECRET = "9KmvZYNXFCYfNYN70nm1JtA8KMLRAkM1"  # Replace with actual secret
+CLIENT_SECRET = "qiwqkcmtG04MaQLJLTmQ8bKSHyLlFfNb"  # Replace with actual secret
 
 oauth = OAuth(app)
 keycloak = oauth.register(

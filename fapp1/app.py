@@ -10,7 +10,7 @@ KEYCLOAK_BASE_URL = "http://localhost:8080"  # Adjust if using Docker (See Step 
 REALM_NAME = "MyRealm"
 
 CLIENT_ID = "fapp1"
-CLIENT_SECRET = "RnRJ1IF6NI6ALUB8YIt4YRwltzr8kG97"  # Replace with actual secret
+CLIENT_SECRET = "9v35FAZMzQt5coPomh2CBgvRkJrYd4CJ"  # Replace with actual secret
 
 oauth = OAuth(app)
 keycloak = oauth.register(
@@ -91,8 +91,8 @@ def register_user():
 @app.route("/addnew")
 def add_user():
     '''Redirect to KeyCloak a new user'''
-    return "Redirect to Keycloak a new user."
-
+    # return "Redirect to Keycloak a new user."
+    return redirect(f"{KEYCLOAK_BASE_URL}/realms/{REALM_NAME}/protocol/openid-connect/registrations?client_id=account&response_type=code")
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)
