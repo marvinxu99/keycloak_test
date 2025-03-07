@@ -42,7 +42,7 @@ def saml_client():
                 "want_response_signed": False,      # Disable signed responses (for dev)
                 "want_assertions_signed": False,    # Disable signed assertions
                 "logout_requests_signed": False,    # Disable signed logout requests
-                "name_id_format": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+                "name_id_format": "urn:oasis:names:tc:SAML:1.1:nameid-format:username",
                 "logout_requests_signed": False,     # Disable signed logout requests
                 "force_authn": False,                # Disable forced authentication
                 "allow_unsolicited": True,          # Allow unsolicited responses
@@ -50,6 +50,7 @@ def saml_client():
                     "assertion_consumer_service": [(SAML_ACS_URL, BINDING_HTTP_POST)],
                     "single_logout_service": [(SAML_LOGOUT_URL, BINDING_HTTP_POST)],
                 },
+                "accepted_time_diff": 300,  # Allows 5 minutes time difference
             }
         },
     })
@@ -65,11 +66,6 @@ def home():
 def login():
     client = saml_client()
 
-    # Get first IdP entity ID from metadata
-    # idp_keys = list(client.metadata.keys())
-    # if not idp_keys:
-    #     return "No IdP found in metadata.", 500
-    # idp_entity_id = idp_keys[0]
     # Use the realm entity ID from Keycloak metadata
     idp_entity_id = SAML_IDP_ENTITY_ID
 
@@ -86,7 +82,7 @@ def login():
     return redirect(redirect_url)
 
 
-@app.route("/saml/acs", methods=["POST"])
+@app.route("/saml/acs", methods=["POST"])   # ACS - Assertion Consumer Service
 def saml_acs():
     client = saml_client()
     authn_response = client.parse_authn_request_response(request.form["SAMLResponse"], BINDING_HTTP_POST)
@@ -130,46 +126,72 @@ def logout():
         name_id = session["name_id"]
         name_id_format = session.get("name_id_format", "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
         sp_name_qualifier = session.get("name_id_sp_name_qualifier", "")
-        session_id = session.get("session_id")
+        session_id = session.get("session_id")  # Keycloak SAML session index
 
         # Construct the NameID object for logout
-        name_id_obj = NameID(format=name_id_format, sp_name_qualifier=sp_name_qualifier, text=name_id)
+        #name_id_obj = NameID(format=name_id_format, sp_name_qualifier=sp_name_qualifier, text=name_id)
+        name_id_obj = NameID(format=name_id_format, text=name_id)
+
         print("Metadata keys loaded:", client.metadata.keys())
         print(f"Logging out user: {name_id}, Format: {name_id_format}, SP Name Qualifier: {sp_name_qualifier}, Session ID: {session_id}")
 
+        # Ensure Keycloak's SAML logout endpoint is used
+        slo_destination = "http://localhost:8080/realms/MyRealm/protocol/saml"
+
         try:
-            # Try to perform global logout via pysaml2 using just the NameID
-            reqid, info = client.global_logout(name_id_obj)
+            # Required parameters for do_logout()
+            entity_ids = [SAML_IDP_ENTITY_ID]  # The IdP entity ID
+            expire = None  # Log out immediately
+
+            # Generate the logout request with session index
+            logout_request = client.do_logout(
+                name_id=name_id_obj,
+                session_id=session_id if session_id else "",
+                entity_ids=entity_ids,
+                expire=expire,
+                reason="User Logout",
+                sign=None
+            )
+
+            # Print out the LogoutRequest object details
+            print("\n **Logout Request Sent:**")
+            print(f"Type: {type(logout_request)}")
+            print(f"Content: {logout_request}")
+
+            # Extract the actual LogoutResponse
+            logout_response = logout_request.get(SAML_IDP_ENTITY_ID, None)
+            if logout_response:
+                print("\n **LogoutResponse Details:**")
+                print(f"Status Code: {logout_response.status}")
+                print(f"Issuer: {logout_response.issuer}")
+                print(f"Destination: {logout_response.destination}")
+                print(f"InResponseTo: {logout_response.in_response_to}")
+
+            # Ensure the response is valid
+            logout_url = None
+            for binding, header_info in logout_request.items():
+                if binding == BINDING_HTTP_REDIRECT:
+                    logout_url = dict(header_info).get("Location")
+                    break
+
+            if logout_url:
+                print(f"Redirecting to SLO URL: {logout_url}")
+                session.clear()
+                return redirect(logout_url)
+            else:
+                print("No logout URL found, manually redirecting to Keycloak logout.")
+                session.clear()
+                return redirect(slo_destination)
+
         except Exception as e:
-            print("Error calling global_logout:", e)
-            # Fallback: Attempt to retrieve the IdP's SLO endpoint from metadata
-            try:
-                slo_endpoints = client.metadata.single_logout_service(SAML_IDP_ENTITY_ID, binding=BINDING_HTTP_REDIRECT, typ="logout_request")
-                slo_destination = slo_endpoints[0][1] if slo_endpoints else None
-            except Exception as e2:
-                print("Error retrieving SLO endpoint from metadata:", e2)
-                slo_destination = None
-
-            if not slo_destination:
-                # Fallback to hard-coded Keycloak SLO endpoint as defined in your metadata
-                slo_destination = "http://localhost:8080/realms/MyRealm/protocol/saml"
+            print("Error generating LogoutRequest:", e)
             session.clear()
-            return redirect(slo_destination)
+            return "Logout failed on the SAML side. Please close your browser to complete logout from Keycloak.", 500
 
-        # Extract redirect URL from the generated LogoutRequest info (using HTTP-Redirect binding)
-        logout_url = None
-        for binding, header_info in info.items():
-            if binding == BINDING_HTTP_REDIRECT:
-                logout_url = dict(header_info).get("Location")
-                break
-
-        if logout_url:
-            session.clear()
-            return redirect(logout_url)
-
-    # Fallback: if no SAML session info is available, clear the session and redirect to home
+    # Fallback: if no SAML session info is available, clear session and redirect home
     session.clear()
     return redirect(url_for("home"))
+
 
 
 if __name__ == "__main__":
