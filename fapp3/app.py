@@ -4,6 +4,7 @@ from saml2.config import Config as Saml2Config
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
 from saml2.saml import NameID
+from saml2.response import LogoutResponse
 import os
 
 app = Flask(__name__)
@@ -116,6 +117,26 @@ def saml_metadata():
     metadata_str = str(entity_descriptor(client.config))
     return metadata_str, 200, {'Content-Type': 'text/xml'}
 
+@app.route("/saml/logout", methods=["POST"])
+def saml_logout_response():
+    saml_response = request.form.get("SAMLResponse")
+
+    if not saml_response:
+        return "Missing SAMLResponse", 400
+
+    client = saml_client()  # Initialize SAML2 client
+    logout_response = LogoutResponse(client.config, saml_response)
+
+    try:
+        logout_response.verify()
+        if logout_response.success:
+            session.clear()  # Clear user session
+            return redirect(url_for("home"))
+        else:
+            return "Logout failed", 500
+    except Exception as e:
+        return f"Error processing logout response: {str(e)}", 500
+
 
 @app.route("/logout")
 def logout():
@@ -138,60 +159,66 @@ def logout():
         # Ensure Keycloak's SAML logout endpoint is used
         slo_destination = "http://localhost:8080/realms/MyRealm/protocol/saml"
 
-        try:
-            # Required parameters for do_logout()
-            entity_ids = [SAML_IDP_ENTITY_ID]  # The IdP entity ID
-            expire = None  # Log out immediately
+        # Required parameters for do_logout()
+        entity_ids = [SAML_IDP_ENTITY_ID]  # The IdP entity ID
+        expire = None  # Log out immediately
 
-            # Generate the logout request with session index
-            logout_request = client.do_logout(
-                name_id=name_id_obj,
-                session_id=session_id if session_id else "",
-                entity_ids=entity_ids,
-                expire=expire,
-                reason="User Logout",
-                sign=None
-            )
+        # Generate the logout request with session index
+        logout_request = client.do_logout(
+            name_id=name_id_obj,
+            session_id=session_id if session_id else None,
+            entity_ids=entity_ids,
+            expire=expire,
+            reason="User Logout",
+            sign=None
+        )
 
-            # Print out the LogoutRequest object details
-            print("\n **Logout Request Sent:**")
-            print(f"Type: {type(logout_request)}")
-            print(f"Content: {logout_request}")
+        # Print out the LogoutRequest object details
+        print("\n **Logout Request Sent:**")
+        print(f"Type: {type(logout_request)}")
+        print(f"Content: {logout_request}")
 
-            # Extract the actual LogoutResponse
-            logout_response = logout_request.get(SAML_IDP_ENTITY_ID, None)
-            if logout_response:
+        # Extract the actual LogoutResponse
+        logout_response = logout_request.get(SAML_IDP_ENTITY_ID, None)
+
+        if not logout_response:
+            print("No logout response received, manually redirecting to Keycloak SLO endpoint.")
+            session.clear()
+            return redirect(slo_destination)
+
+        if isinstance(logout_response, LogoutResponse):
+            try:
+                print("\n **LogoutResponse Received:**")
+                print(f"Type: {type(logout_response)}")
+                print(f"Content: {logout_response}")
+
+                # Extract status code from the response
+                status_code = logout_response.response.status.status_code.value
                 print("\n **LogoutResponse Details:**")
-                print(f"Status Code: {logout_response.status}")
-                print(f"Issuer: {logout_response.issuer}")
-                print(f"Destination: {logout_response.destination}")
-                print(f"InResponseTo: {logout_response.in_response_to}")
+                print(f"Status Code: {status_code}")  # Correct way to access logout response status
+                print(f"Issuer: {logout_response.response.issuer.text}")
+                print(f"Destination: {logout_response.response.destination}")
+                print(f"InResponseTo: {logout_response.response.in_response_to}")
 
-            # Ensure the response is valid
-            logout_url = None
-            for binding, header_info in logout_request.items():
-                if binding == BINDING_HTTP_REDIRECT:
-                    logout_url = dict(header_info).get("Location")
-                    break
-
-            if logout_url:
-                print(f"Redirecting to SLO URL: {logout_url}")
-                session.clear()
-                return redirect(logout_url)
-            else:
-                print("No logout URL found, manually redirecting to Keycloak logout.")
+                # Verify logout response status
+                # status_code = logout_response.response.status.status_code.value     # Extract status code
+                if status_code == "urn:oasis:names:tc:SAML:2.0:status:Success":
+                    print("Logout successful!")
+                    session.clear()
+                    return redirect(url_for("home")) 
+                else:
+                    print("Logout failed! Status:", logout_response.status.status_code.value)
+                    session.clear()
+                    return redirect(slo_destination)
+            except AttributeError as e:
+                print(f"Error extracting status code: {e}")
                 session.clear()
                 return redirect(slo_destination)
 
-        except Exception as e:
-            print("Error generating LogoutRequest:", e)
+        else:
+            # Fallback: if no SAML session info is available, clear session and redirect home
             session.clear()
-            return "Logout failed on the SAML side. Please close your browser to complete logout from Keycloak.", 500
-
-    # Fallback: if no SAML session info is available, clear session and redirect home
-    session.clear()
-    return redirect(url_for("home"))
-
+            return redirect(url_for("home"))
 
 
 if __name__ == "__main__":
