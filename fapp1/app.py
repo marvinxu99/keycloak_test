@@ -35,14 +35,21 @@ keycloak = oauth.register(
 )
 
 @app.route("/")
+@app.route("/home")
 def home():
     return """<p>Welcome to fapp1! </p>
         </p>
         <div><a href="/login">Login with Keycloak</a></div>
         </p>
-        <div><a href="/addnew">Redirect to KeyCloak to register a new user</a></div>
+        <div><a href="/addnew">Redirect to KeyCloak to ADD a new user (/addnew)</a></div>
         </p>
-        <div><a href="/register">Call Keycloak API to register a new user</a></div>
+        <div><a href="/register">Call Keycloak API to register a new user(/register)</a></div>
+        </p>
+        <div><a href="/getproxies">Get Proxies(/getproxies)</a></div>
+        </p>
+        <div><a href="/addproxy">Add a PHN that the current user is a proxy for (/addproxy)</a></div>
+        </p>
+        <div><a href="/removeproxy">Remove a proxy(/removeproxy)</a></div>
         </p>
         <div><a href="/logout">Logout</a></div>
 
@@ -209,6 +216,38 @@ def add_user():
     return redirect(f"{KEYCLOAK_BASE_URL}/realms/{REALM_NAME}/protocol/openid-connect/registrations?client_id=account&response_type=code")
 
 
+@app.route("/getproxies")
+def get_proxies():
+    '''Get all the PHNs that the current user is a proxy for'''
+    # return "Redirect to Keycloak a new user."
+    return f"""
+        <p>Below are the person that current user is a proxy for:</p>
+        <p>PHN: </p>
+        <div><a href="/">Back to Home</a></div>
+    """
+
+@app.route("/addproxy")
+def add_proxy():
+    '''Add a PHN that the current user is a proxy for'''
+    # return "Redirect to Keycloak a new user."
+    return f"""
+        <p>Added the person that current user is a proxy for:</p>
+        <p>PHN: </p>
+        <div><a href="/">Back to Home</a></div>
+    """
+
+@app.route("/removeproxy")
+def remove_proxy():
+    '''Remove the PHN that the current user is a proxy for'''
+    # return "Redirect to Keycloak a new user."
+    return f"""
+        <p>Removed the person that current user is a proxy for:</p>
+        <p>PHN: </p>
+        <div><a href="/">Back to Home</a></div>
+    """
+
+###############################################################
+###############################################################
 def get_admin_token():
     """Fetch an access token for the Keycloak admin user."""
     data = {
