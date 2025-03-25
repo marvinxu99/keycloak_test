@@ -5,6 +5,7 @@ from auth.utils import get_admin_token
 
 user_bp = Blueprint("user", __name__, url_prefix="/")
 
+
 @user_bp.route("/welcome")
 def welcome():
     if "user_info" not in session:
