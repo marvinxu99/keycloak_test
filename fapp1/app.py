@@ -124,6 +124,7 @@ def welcome():
         <p>Welcome, {full_name} - ({username})!</p>
         <p>Email: {email}</p>
         <div><a href="/logout">Logout</a></div>
+        <div><a href="/">Home</a></div>
     """
 
 
@@ -229,10 +230,55 @@ def get_proxies():
 @app.route("/addproxy")
 def add_proxy():
     '''Add a PHN that the current user is a proxy for'''
-    # return "Redirect to Keycloak a new user."
+    if "user_info" not in session:
+        return redirect("/")
+
+    user_info = session["user_info"]
+    username = user_info.get("preferred_username")
+    new_phn = "9876543212"  # 🔹 You can modify this to accept dynamic input later
+
+    admin_token = get_admin_token()
+    if not admin_token:
+        return "Error: Unable to authenticate with Keycloak admin API", 500
+
+    # 1. Get user's Keycloak ID
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = requests.get(f"{KEYCLOAK_USERS_URL}?username={username}", headers=headers)
+    if response.status_code != 200 or not response.json():
+        return f"Error retrieving user ID for {username}", 500
+
+    user_id = response.json()[0]["id"]
+    print(f'user_id = {user_id}. \n')
+
+    # 2. Fetch full user object to modify
+    user_detail_url = f"{KEYCLOAK_USERS_URL}/{user_id}"
+    user_resp = requests.get(user_detail_url, headers=headers)
+    if user_resp.status_code != 200:
+        return "Error retrieving full user details", 500
+
+    user_data = user_resp.json()
+
+    # 3. Add or update 'Proxies' attribute
+    attributes = user_data.get("attributes", {})
+    proxy_phns = attributes.get("Proxies", [])
+
+    # Normalize to list if it's not
+    if isinstance(proxy_phns, str):
+        proxy_phns = [proxy_phns]
+
+    if new_phn not in proxy_phns:
+        proxy_phns.append(new_phn)
+        
+    attributes["Proxies"] = proxy_phns
+    user_data["attributes"] = attributes
+
+    # 4. Update the user via PUT
+    put_resp = requests.put(user_detail_url, json=user_data, headers=headers)
+    if put_resp.status_code not in [200, 204]:
+        return f"Failed to update user: {put_resp.text}", put_resp.status_code
+
     return f"""
-        <p>Added the person that current user is a proxy for:</p>
-        <p>PHN: </p>
+        <p>Successfully added PHN '{new_phn}' as a proxy for user '{username}'</p>
         <div><a href="/">Back to Home</a></div>
     """
 
