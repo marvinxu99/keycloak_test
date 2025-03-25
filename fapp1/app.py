@@ -45,7 +45,7 @@ def home():
         </p>
         <div><a href="/register">Call Keycloak API to register a new user(/register)</a></div>
         </p>
-        <div><a href="/getproxies">Get Proxies(/getproxies)</a></div>
+        <div><a href="/getproxies">Display Proxies(/getproxies)</a></div>
         </p>
         <div><a href="/addproxy">Add a PHN that the current user is a proxy for (/addproxy)</a></div>
         </p>
@@ -124,7 +124,7 @@ def welcome():
         <p>Welcome, {full_name} - ({username})!</p>
         <p>Email: {email}</p>
         <div><a href="/logout">Logout</a></div>
-        <div><a href="/">Home</a></div>
+        <div><a href="/">Back to Home</a></div>
     """
 
 
@@ -212,7 +212,7 @@ def register_user():
 
 @app.route("/addnew")
 def add_user():
-    '''Redirect to KeyCloak a new user'''
+    '''Redirect to KeyCloak for adding a new user'''
     # return "Redirect to Keycloak a new user."
     return redirect(f"{KEYCLOAK_BASE_URL}/realms/{REALM_NAME}/protocol/openid-connect/registrations?client_id=account&response_type=code")
 
@@ -220,12 +220,55 @@ def add_user():
 @app.route("/getproxies")
 def get_proxies():
     '''Get all the PHNs that the current user is a proxy for'''
-    # return "Redirect to Keycloak a new user."
-    return f"""
-        <p>Below are the person that current user is a proxy for:</p>
-        <p>PHN: </p>
-        <div><a href="/">Back to Home</a></div>
-    """
+    if "user_info" not in session:
+        return redirect("/")
+
+    user_info = session["user_info"]
+    username = user_info.get("preferred_username")
+
+    admin_token = get_admin_token()
+    if not admin_token:
+        return "Error: Unable to authenticate with Keycloak admin API", 500
+
+    # 1. Get user ID from Keycloak
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = requests.get(f"{KEYCLOAK_USERS_URL}?username={username}", headers=headers)
+    if response.status_code != 200 or not response.json():
+        return f"Error retrieving user ID for {username}", 500
+
+    user_id = response.json()[0]["id"]
+    user_detail_url = f"{KEYCLOAK_USERS_URL}/{user_id}"
+
+    # 2. Fetch full user profile
+    user_resp = requests.get(user_detail_url, headers=headers)
+    if user_resp.status_code != 200:
+        return "Error retrieving user details", 500
+
+    user_data = user_resp.json()
+    attributes = user_data.get("attributes", {})
+    proxy_phns = attributes.get("Proxies", [])
+
+    # Normalize
+    if isinstance(proxy_phns, str):
+        proxy_phns = [proxy_phns]
+
+    return render_template_string("""
+        <h2>PHNs you are a proxy for</h2>
+
+        {% if proxy_phns %}
+            <ul>
+                {% for phn in proxy_phns %}
+                    <li>{{ phn }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>You are not currently a proxy for any PHNs.</p>
+        {% endif %}
+
+        <br>
+        <a href="/">Back to Home</a>
+    """, proxy_phns=proxy_phns)
+
 
 @app.route("/addproxy")
 def add_proxy():
