@@ -282,15 +282,79 @@ def add_proxy():
         <div><a href="/">Back to Home</a></div>
     """
 
-@app.route("/removeproxy")
+@app.route("/removeproxy", methods=["GET", "POST"])
 def remove_proxy():
-    '''Remove the PHN that the current user is a proxy for'''
-    # return "Redirect to Keycloak a new user."
-    return f"""
-        <p>Removed the person that current user is a proxy for:</p>
-        <p>PHN: </p>
-        <div><a href="/">Back to Home</a></div>
-    """
+    '''Remove a PHN that the current user is a proxy for'''
+    if "user_info" not in session:
+        return redirect("/")
+
+    user_info = session["user_info"]
+    username = user_info.get("preferred_username")
+
+    admin_token = get_admin_token()
+    if not admin_token:
+        return "Error: Unable to authenticate with Keycloak admin API", 500
+
+    # Get Keycloak user ID
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = requests.get(f"{KEYCLOAK_USERS_URL}?username={username}", headers=headers)
+    if response.status_code != 200 or not response.json():
+        return f"Error retrieving user ID for {username}", 500
+
+    user_id = response.json()[0]["id"]
+    user_detail_url = f"{KEYCLOAK_USERS_URL}/{user_id}"
+    user_resp = requests.get(user_detail_url, headers=headers)
+    if user_resp.status_code != 200:
+        return "Error retrieving full user details", 500
+
+    user_data = user_resp.json()
+    attributes = user_data.get("attributes", {})
+    proxy_phns = attributes.get("Proxies", [])
+
+    # Normalize to list
+    if isinstance(proxy_phns, str):
+        proxy_phns = [proxy_phns]
+
+    msg = None
+    if request.method == "POST":
+        phn_to_remove = request.form.get("phn_to_remove", "").strip()
+
+        if phn_to_remove in proxy_phns:
+            proxy_phns.remove(phn_to_remove)
+            attributes["Proxies"] = proxy_phns  # Keycloak expects a list for multivalued
+            user_data["attributes"] = attributes
+
+            put_resp = requests.put(user_detail_url, json=user_data, headers=headers)
+            if put_resp.status_code not in [200, 204]:
+                return f"Error updating user: {put_resp.text}", put_resp.status_code
+
+            msg = f"PHN '{phn_to_remove}' successfully removed."
+        else:
+            msg = f"PHN '{phn_to_remove}' not found in the proxy list."
+
+    return render_template_string("""
+        <h2>Remove a Proxy PHN</h2>
+        <p><strong>Current PHNs:</strong></p>
+        <ul>
+            {% for phn in current_proxies %}
+                <li>{{ phn }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if msg %}
+        <p><em>{{ msg }}</em></p>
+        {% endif %}
+
+        <form method="POST">
+            <label for="phn_to_remove">Enter PHN to remove:</label><br>
+            <input type="text" name="phn_to_remove" required><br><br>
+            <button type="submit">Remove PHN</button>
+        </form>
+        <br>
+        <a href="/">Back to Home</a>
+    """, current_proxies=proxy_phns, msg=msg)
+
+
 
 ###############################################################
 ###############################################################
