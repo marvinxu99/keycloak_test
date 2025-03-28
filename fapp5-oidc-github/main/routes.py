@@ -10,7 +10,7 @@ def home():
 @main_bp.route("/about")
 def about():
     return render_template_string("""
-        <h2>About fapp1</h2>
+        <h2>About fapp5-oidc-github</h2>
         <p>This app demonstrates Flask + Keycloak integration with proxy management.</p>
         <a href="/">Back to Home</a>
     """)

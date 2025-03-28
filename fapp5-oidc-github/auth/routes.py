@@ -6,7 +6,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/")
 
 @auth_bp.route("/login")
 def login():
-    redirect_uri = "http://localhost:5001/callback"
+    redirect_uri = app.config['VALID_REDIRECT_URI']   #  "http://localhost:5005/callback"
     return get_keycloak().authorize_redirect(redirect_uri=redirect_uri)
 
 
@@ -39,6 +39,6 @@ def logout():
         id_token = session["token"].get("id_token", "")
         session.clear()
         logout_url = f"{app.config['KEYCLOAK_BASE_URL']}/realms/{app.config['REALM_NAME']}/protocol/openid-connect/logout"
-        return redirect(f"{logout_url}?id_token_hint={id_token}&post_logout_redirect_uri=http://localhost:5001")
+        return redirect(f"{logout_url}?id_token_hint={id_token}&post_logout_redirect_uri=http://localhost:5005")
 
     return redirect("/")
