@@ -1,0 +1,27 @@
+{
+    "entityid": "fapp3",
+    "metadata": {
+        "local": ["keycloak-metadata.xml"]
+    },
+    "service": {
+        "sp": {
+            "name_id_format": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "allow_unsolicited": true,
+            "authn_requests_signed": false,
+            "logout_requests_signed": false,
+            "want_assertions_signed": true,
+            "endpoints": {
+                "assertion_consumer_service": [
+                    "http://localhost:5003/saml/acs"
+                ],
+                "single_logout_service": [
+                    "http://localhost:5003/saml/slo"
+                ]
+            }
+        }
+    },
+    "key_file": "",
+    "cert_file": "",
+    "encryption_keypairs": [],
+    "debug": true
+}
