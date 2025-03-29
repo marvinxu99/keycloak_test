@@ -14,6 +14,8 @@ def welcome():
     user_info = session["user_info"]
     return render_template_string("""
         <h2>Welcome, {{ name }} ({{ username }})</h2>
+        <p>You have successfully logged into fapp5-oidc-github</p>
+        </p>
         <p>Email: {{ email }}</p>
         <div><a href="/logout">Logout</a></div>
         <div><a href="/">Back to Home</a></div>
