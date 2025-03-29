@@ -11,12 +11,12 @@ app = Flask(__name__)
 app.secret_key = "your_secret_key123456789"
 
 # SAML Configuration
-SAML_METADATA_URL = "http://localhost:8080/realms/MyRealm/protocol/saml/descriptor"
+SAML_METADATA_URL = "http://localhost:8080/realms/MyRealm_Github/protocol/saml/descriptor"
 # SAML_SP_ENTITY_ID = "http://localhost:5003"
-SAML_SP_ENTITY_ID = "fapp3"
-SAML_ACS_URL = "http://localhost:5003/saml/acs"
-SAML_LOGOUT_URL = "http://localhost:5003/logout"
-SAML_IDP_ENTITY_ID = "http://localhost:8080/realms/MyRealm"
+SAML_SP_ENTITY_ID = "vpp_portal_saml"
+SAML_ACS_URL = "http://localhost:5004/saml/acs"
+SAML_LOGOUT_URL = "http://localhost:5004/logout"
+SAML_IDP_ENTITY_ID = "http://localhost:8080/realms/MyRealm_Github"
 
 # Use a local metadata file to avoid Keycloak metadata fetching issues
 SAML_METADATA_FILE = "keycloak-metadata.xml"
@@ -44,7 +44,6 @@ def saml_client():
                 "want_assertions_signed": False,    # Disable signed assertions
                 "logout_requests_signed": False,    # Disable signed logout requests
                 "name_id_format": "urn:oasis:names:tc:SAML:1.1:nameid-format:username",
-                "logout_requests_signed": False,     # Disable signed logout requests
                 "force_authn": False,                # Disable forced authentication
                 "allow_unsolicited": True,          # Allow unsolicited responses
                 "endpoints": {
@@ -60,7 +59,23 @@ def saml_client():
 
 @app.route("/")
 def home():
-    return '<a href="/login">Login with SAML</a>'
+    return """<p>Welcome to fapp4-saml-github! </p>
+        </p>
+        <div><a href="/login">Login with Keycloak-SAML</a></div>
+        </p>
+        <div><a href="/addnew">Redirect to KeyCloak to ADD a new user (/addnew)</a></div>
+        </p>
+        <div><a href="/register">Call Keycloak API to register a new user(/register)</a></div>
+        </p>
+        <div><a href="/getproxies">Display Proxies(/getproxies)</a></div>
+        </p>
+        <div><a href="/addproxy">Add a PHN that the current user is a proxy for (/addproxy)</a></div>
+        </p>
+        <div><a href="/removeproxy">Remove a proxy(/removeproxy)</a></div>
+        </p>
+        <div><a href="/logout">Logout</a></div>
+
+        """
 
 
 @app.route("/login")
@@ -150,14 +165,13 @@ def logout():
         session_id = session.get("session_id")  # Keycloak SAML session index
 
         # Construct the NameID object for logout
-        #name_id_obj = NameID(format=name_id_format, sp_name_qualifier=sp_name_qualifier, text=name_id)
-        name_id_obj = NameID(format=name_id_format, text=name_id)
+        name_id_obj = NameID(format=name_id_format, text=name_id, sp_name_qualifier=sp_name_qualifier or None)
 
         print("Metadata keys loaded:", client.metadata.keys())
         print(f"Logging out user: {name_id}, Format: {name_id_format}, SP Name Qualifier: {sp_name_qualifier}, Session ID: {session_id}")
 
         # Ensure Keycloak's SAML logout endpoint is used
-        slo_destination = "http://localhost:8080/realms/MyRealm/protocol/saml"
+        slo_destination = "http://localhost:8080/realms/MyRealm_Github/protocol/saml"
 
         # Required parameters for do_logout()
         entity_ids = [SAML_IDP_ENTITY_ID]  # The IdP entity ID
@@ -184,7 +198,9 @@ def logout():
         if not logout_response:
             print("No logout response received, manually redirecting to Keycloak SLO endpoint.")
             session.clear()
-            return redirect(slo_destination)
+            # return redirect(slo_destination)
+            # NEW: Redirect to OIDC logout endpoint to destroy IdP session - HERE we use the openid-connect even though for SAML
+            return redirect("http://localhost:8080/realms/MyRealm_Github/protocol/openid-connect/logout?redirect_uri=http://localhost:5004")
 
         if isinstance(logout_response, LogoutResponse):
             try:
@@ -205,21 +221,28 @@ def logout():
                 if status_code == "urn:oasis:names:tc:SAML:2.0:status:Success":
                     print("Logout successful!")
                     session.clear()
-                    return redirect(url_for("home")) 
+                    # return redirect(url_for("home")) 
+                    # Have issues - - HERE we use the openid-connect even though for SAML
+                    return redirect("http://localhost:8080/realms/MyRealm_Github/protocol/openid-connect/logout?redirect_uri=http://localhost:5004")
                 else:
                     print("Logout failed! Status:", logout_response.status.status_code.value)
                     session.clear()
-                    return redirect(slo_destination)
+                    # return redirect(slo_destination)
+                    return redirect("http://localhost:8080/realms/MyRealm_Github/protocol/openid-connect/logout?redirect_uri=http://localhost:5004")
+
             except AttributeError as e:
                 print(f"Error extracting status code: {e}")
                 session.clear()
-                return redirect(slo_destination)
+                # return redirect(slo_destination)
+                return redirect("http://localhost:8080/realms/MyRealm_Github/protocol/openid-connect/logout?redirect_uri=http://localhost:5004")
 
         else:
             # Fallback: if no SAML session info is available, clear session and redirect home
             session.clear()
-            return redirect(url_for("home"))
+            # return redirect(url_for("home"))
+            return redirect("http://localhost:8080/realms/MyRealm_Github/protocol/openid-connect/logout?redirect_uri=http://localhost:5004")
+
 
 
 if __name__ == "__main__":
-    app.run(port=5003, debug=True)
+    app.run(port=5004, debug=True)
