@@ -36,6 +36,7 @@ def saml_client():
     config.load({
         "entityid": SAML_SP_ENTITY_ID,
         "metadata": {"local": [SAML_METADATA_FILE]},
+        "attribute_map_dir": "D:/dDev/Python/keycloak_test/venv/Lib/site-packages/saml2/attributemaps",
         "service": {
             "sp": {
                 "allow_unknown_attributes": True,
@@ -102,8 +103,30 @@ def login():
 def saml_acs():
     client = saml_client()
     authn_response = client.parse_authn_request_response(request.form["SAMLResponse"], BINDING_HTTP_POST)
+    print("authn_response:")
+    print(authn_response)
+ 
     if authn_response is None or authn_response.get_subject() is None:
         return "Authentication failed.", 401
+    
+    attributes = authn_response.ava  # Attribute Value Assertion dict
+    print("SAML Attributes received:", attributes)
+    # Fallback: manually extract attributes from assertion if ava is empty
+    if not attributes:
+        print("Fallback: manually extracting attributes")
+        attributes = {}
+        for statement in authn_response.assertion.attribute_statement:
+            for attr in statement.attribute:
+                name = attr.name
+                values = [val.text for val in attr.attribute_value]
+                attributes[name] = values
+    print("SAML Attributes received (manual):", attributes)
+
+    # Safe retrieval of values
+    session["alias"] = attributes.get("alias", [None])[0]
+    session["accessibleAliases"] = attributes.get("accessibleAliases", [])
+    print("Alias:", session["alias"])
+    print("Accessible Aliases:", session["accessibleAliases"])
 
     # Extract the full NameID object
     subject = authn_response.get_subject()
