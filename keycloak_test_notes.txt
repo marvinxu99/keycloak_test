@@ -1,0 +1,7 @@
+How to restart Keycloak after reboot:
+
+(1) Run Docker Desktop to restart Docker engine
+
+(2) Run restart_keycloak.bat
+
+(3) Http://localhost:8080 to start the KeyCloak console
