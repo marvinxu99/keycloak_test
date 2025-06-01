@@ -125,8 +125,8 @@ def saml_acs():
     # Safe retrieval of values
     session["alias"] = attributes.get("alias", [None])[0]
     session["accessibleAliases"] = attributes.get("accessibleAliases", [])
-    print("Alias:", session["alias"])
-    print("Accessible Aliases:", session["accessibleAliases"])
+    print("alias:", session["alias"])
+    print("accessibleAliases:", session["accessibleAliases"])
 
     # Extract the full NameID object
     subject = authn_response.get_subject()

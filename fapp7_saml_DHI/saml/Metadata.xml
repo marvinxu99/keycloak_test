@@ -1,0 +1,25 @@
+<md:EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="https://auth.dev.htk.healthcarebc.ca/realms/dht">
+<md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+<md:KeyDescriptor use="signing">
+<ds:KeyInfo>
+<ds:KeyName>FmkdSU_-1A9UeOQ699py4Rifl0XyGjraF2rMUCqU4cA</ds:KeyName>
+<ds:X509Data>
+<ds:X509Certificate>MIIClTCCAX0CBgGSUc69vTANBgkqhkiG9w0BAQsFADAOMQwwCgYDVQQDDANkaHQwHhcNMjQxMDAzMDk1NDE2WhcNMzQxMDAzMDk1NTU2WjAOMQwwCgYDVQQDDANkaHQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC36zeW+5tR07IWuUf9lzIf3qiFvSToB2q8Tr5+6SdXEEmn0vV9kt0vQz2SyuKIXmsB9NOwcFT2HIoPTqC/+crW2AqRd3vxvOa15pJSdpIB2rqAJAJ7yY/OmSKiVTaQrcbG06jlNEycwh687E/6Vh/WM3y4ZNctVHXvGHYDkqsuLAPDtMMX2YqDXLabimMwuz2eU/7cehEP7p1GA1Lx5NcrqqemYH+41ylcxoFuW7nFOJDMgqomCD6BEjbil5WYoE6AUuTP5H+74PZyvEgg8VxN0UOsQSk62ScTd3HH9alAFd8F8OAreDU72yL3HB+raOl4WmIczEBK7EM9rflQVeZNAgMBAAEwDQYJKoZIhvcNAQELBQADggEBABrjijC7gofyMRbCQgHLOZ7DfAOz3Sq5KHKe2psLWvPXB71DIuZdeHjeXpWj5ayIswISJS3uJ05ugqIvq8uXLoRJp6BKSUWkxAjXzBz/2fAViB2RcDLwyIAfetQD69F1cLyfqSk6jpqDvZ7I+tH776Yb4dvXhI1hfgBSwHbB/BUnQ3gG2t3gAe7Srtp+E3nvNrvcqLrRZLQOzneNFEDKF49K+6jzBKZBZrOQqiz790URiuN4qhTshaCZDE1sAdgK//ZmdKPv8ojBBiCtVU96saOMRo4layd3rvmBX5tgGdodCtzP+Af9sEOQsxB0/C92FVUFnuevIvPmApGHAo23FME=</ds:X509Certificate>
+</ds:X509Data>
+</ds:KeyInfo>
+</md:KeyDescriptor>
+<md:ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml/resolve" index="0"/>
+<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>
+<md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>
+<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>
+<md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+<md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact" Location="https://auth.dev.htk.healthcarebc.ca/realms/dht/protocol/saml"/>
+</md:IDPSSODescriptor>
+</md:EntityDescriptor>

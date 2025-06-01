@@ -15,13 +15,27 @@ def saml_client():
 
 
 @app.route("/")
+# def index():
+#     user_info = session.get("saml_user")
+#     if user_info:
+#         name_id = user_info.get("name_id", "Unknown")
+#         return f"Hello, {name_id}! <br><a href='/logout'>Logout</a>"
+#     return '<a href="/saml/login">Login with SAML</a>'
 def index():
     user_info = session.get("saml_user")
     if user_info:
         name_id = user_info.get("name_id", "Unknown")
-        return f"Hello, {name_id}! <br><a href='/logout'>Logout</a>"
-    return '<a href="/saml/login">Login with SAML</a>'
-
+        return f"""
+            <h1>Hello, {name_id}!</h1>
+            <form action="/logout" method="get">
+                <button type="submit">Logout</button>
+            </form>
+        """
+    return """
+        <form action="/saml/login" method="get">
+            <button type="submit">Login with SAML</button>
+        </form>
+    """
 
 @app.route('/saml/login')
 def login():
